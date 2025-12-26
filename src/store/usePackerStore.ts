@@ -14,7 +14,7 @@ export interface ImageItem {
     url: string;
     width: number;
     height: number;
-    rotatable: boolean;
+    rotation: number; // 0, 90, 180, 270
     padding?: Padding;
 }
 
@@ -45,7 +45,7 @@ interface PackerState {
     setStatus: (status: 'idle' | 'packing' | 'success' | 'error') => void;
     setAtlasBlob: (blob: Blob | null) => void;
     clearImages: () => void;
-    toggleImageRotation: (id: string) => void;
+    rotateImage: (id: string) => void;
     updateImage: (id: string, updates: Partial<ImageItem>) => void;
     reorderImages: (newImages: ImageItem[]) => void;
 }
@@ -81,7 +81,7 @@ export const usePackerStore = create<PackerState>((set) => ({
                     url,
                     width: img.width,
                     height: img.height,
-                    rotatable: state.settings.allowRotation,
+                    rotation: 0,
                     padding: { top: 0, bottom: 0, left: 0, right: 0 }
                 }],
             }));
@@ -116,9 +116,9 @@ export const usePackerStore = create<PackerState>((set) => ({
         return { images: [], packedItems: [], unpackedItems: [], atlasBlob: null, status: 'idle' };
     }),
 
-    toggleImageRotation: (id) => set((state) => ({
+    rotateImage: (id) => set((state) => ({
         images: state.images.map(img =>
-            img.id === id ? { ...img, rotatable: !img.rotatable } : img
+            img.id === id ? { ...img, rotation: (img.rotation + 90) % 360 } : img
         )
     })),
 

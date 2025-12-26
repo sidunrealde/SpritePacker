@@ -55,7 +55,7 @@ export function usePackerWorker() {
                 width: img.width,
                 height: img.height,
                 file: img.file,
-                rotatable: img.rotatable,
+                rotation: img.rotation,
                 padding: img.padding
             })),
             width: settings.width,

@@ -13,8 +13,8 @@ describe('packingLogic', () => {
             allowRotation: false, // simpler to test
             layout: 'maxrects',
             images: [
-                { id: '1', width: 50, height: 50, file: {} as File },
-                { id: '2', width: 50, height: 50, file: {} as File },
+                { id: '1', width: 50, height: 50, file: {} as File, rotation: 0 },
+                { id: '2', width: 50, height: 50, file: {} as File, rotation: 0 },
             ],
         };
 
@@ -48,7 +48,7 @@ describe('packingLogic', () => {
             allowRotation: true,
             layout: 'maxrects',
             images: [
-                { id: '1', width: 90, height: 60, file: {} as File },
+                { id: '1', width: 90, height: 60, file: {} as File, rotation: 0 },
             ],
         };
 
@@ -59,21 +59,25 @@ describe('packingLogic', () => {
 
     it('should rotate to fit', () => {
         // 60x100 bin. Item is 90x60. Must rotate to 60x90 to fit (width 90 > 60).
+        // Since we removed 'allowRotation' logic from Logic, and expect manual rotation:
+        // If we pass 90deg, it should swap.
+
         const req: PackRequest = {
             id: 'test-rot-2',
             width: 60,
             height: 100,
             padding: 0,
-            allowRotation: true,
+            allowRotation: true, // Ignored now
             layout: 'maxrects',
             images: [
-                { id: '1', width: 90, height: 60, file: {} as File },
+                { id: '1', width: 90, height: 60, file: {} as File, rotation: 90 }, // Manually rotated
             ],
         };
 
         const result = performPacking(req);
         // Expect success
         expect(result.packed.length).toBe(1);
+        // Logic sets rotated=true if input angle is 90
         expect(result.packed[0].rotated).toBe(true);
     });
 });

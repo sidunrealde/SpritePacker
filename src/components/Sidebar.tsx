@@ -12,7 +12,7 @@ export const Sidebar: React.FC = () => {
         addImage,
         removeImage,
         clearImages,
-        toggleImageRotation,
+        rotateImage,
         updateImage,
         reorderImages,
         status,
@@ -136,7 +136,7 @@ export const Sidebar: React.FC = () => {
 
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col">
-                            <label className="text-xs font-medium text-gray-500">Spacing</label>
+                            <label className="text-xs font-medium text-gray-500">Padding</label>
                             <input
                                 type="number"
                                 value={settings.padding}
@@ -144,7 +144,7 @@ export const Sidebar: React.FC = () => {
                                 className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm w-20 text-white mt-1"
                             />
                         </div>
-                        <label className="flex items-center space-x-2 text-xs cursor-pointer mt-4">
+                        <label className="flex items-center space-x-2 text-xs cursor-pointer">
                             <input
                                 type="checkbox"
                                 checked={settings.scaleToFit}
@@ -190,14 +190,13 @@ export const Sidebar: React.FC = () => {
                         className="group relative bg-gray-800 rounded-md p-2 flex flex-col gap-2 hover:bg-gray-750 border border-transparent hover:border-gray-600 transition-all cursor-move"
                     >
                         <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 bg-gray-900 rounded border border-gray-700 flex items-center justify-center overflow-hidden shrink-0">
+                            <div className="w-12 h-12 bg-gray-900 rounded border border-gray-700 flex items-center justify-center overflow-hidden shrink-0 transition-all">
                                 <img
                                     src={img.url}
                                     alt="preview"
-                                    className="max-w-full max-h-full object-contain"
+                                    className="max-w-full max-h-full object-contain transition-transform duration-200"
                                     style={{
-                                        transform: img.rotatable ? 'rotate(-90deg)' : 'none',
-                                        transition: 'transform 0.2s'
+                                        transform: `rotate(-${img.rotation}deg)` // Visualize user rotation
                                     }}
                                 />
                             </div>
@@ -215,7 +214,7 @@ export const Sidebar: React.FC = () => {
                                     </button>
                                 </div>
                                 <div className="text-[10px] text-gray-500 mt-0.5">
-                                    {img.width}x{img.height}
+                                    {img.width}x{img.height} {img.rotation > 0 ? `(${img.rotation}°)` : ''}
                                 </div>
                             </div>
                         </div>
@@ -223,13 +222,10 @@ export const Sidebar: React.FC = () => {
                         {/* Controls */}
                         <div className="flex justify-between items-center mt-1">
                             <button
-                                onClick={() => toggleImageRotation(img.id)}
-                                className={`text-[10px] py-1 px-2 rounded border transition-colors ${img.rotatable
-                                        ? 'bg-blue-900/30 border-blue-800 text-blue-300'
-                                        : 'bg-gray-700 border-gray-600 text-gray-400 hover:bg-gray-600'
-                                    }`}
+                                onClick={() => rotateImage(img.id)}
+                                className="text-[10px] py-1 px-2 rounded border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors flex items-center gap-1"
                             >
-                                Rotate {img.rotatable ? 'ON' : 'OFF'}
+                                <span>↻</span> Rotate CW
                             </button>
                         </div>
 

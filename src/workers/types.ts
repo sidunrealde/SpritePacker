@@ -21,7 +21,7 @@ export interface Rect {
 
 export interface PackRequest {
     id: string;
-    images: { id: string; width: number; height: number; file: File; rotatable?: boolean; padding?: Padding }[];
+    images: { id: string; width: number; height: number; file: File; rotation: number; padding?: Padding }[];
     width: number;
     height: number;
     padding: number;
