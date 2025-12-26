@@ -9,8 +9,8 @@ export function usePackerWorker() {
     const {
         images,
         settings,
-        setPackingStatus,
-        setPackedResults
+        setStatus,
+        setPackedByWorker
     } = usePackerStore();
 
     useEffect(() => {
@@ -20,16 +20,20 @@ export function usePackerWorker() {
 
         worker.onmessage = (e: MessageEvent<PackResult>) => {
             const result = e.data;
-            if (result.success) {
-                setPackedResults(result.packed);
-                setPackingStatus('success');
+            if (result.success && result.packed) {
+                // We need extra info? calculatedWidth/Height
+                // PackResult needs to include this?
+                // In types.ts, PackResult has width/height.
+                setPackedByWorker(result.packed, result.unpacked || [], result.width, result.height);
             } else {
-                setPackingStatus('error', result.error);
+                setStatus('error');
+                console.error(result.error);
             }
         };
 
         worker.onerror = (err) => {
-            setPackingStatus('error', 'Worker error: ' + err.message);
+            setStatus('error');
+            console.error(err);
         };
 
         return () => {
@@ -42,7 +46,7 @@ export function usePackerWorker() {
         if (!workerRef.current) return;
         if (images.length === 0) return;
 
-        setPackingStatus('packing');
+        setStatus('packing');
 
         const req: PackRequest = {
             id: crypto.randomUUID(),

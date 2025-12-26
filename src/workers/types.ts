@@ -1,5 +1,12 @@
 // src/workers/types.ts
 
+export interface Padding {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+}
+
 export interface Rect {
     id: string;
     width: number;
@@ -7,19 +14,19 @@ export interface Rect {
     x: number;
     y: number;
     rotated: boolean;
-    padding?: number;
+    padding?: Padding;
     file?: File; // Keep reference to original file if needed
     imageBitmap?: ImageBitmap; // For drawing
 }
 
 export interface PackRequest {
     id: string;
-    images: { id: string; width: number; height: number; file: File; rotatable?: boolean; padding?: number }[];
+    images: { id: string; width: number; height: number; file: File; rotatable?: boolean; padding?: Padding }[];
     width: number;
     height: number;
     padding: number;
     allowRotation: boolean;
-    layout: 'maxrects' | 'vertical' | 'horizontal';
+    layout: 'maxrects' | 'vertical' | 'horizontal' | 'grid';
     scaleToFit?: boolean;
     autoSize?: boolean;
 }

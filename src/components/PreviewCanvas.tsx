@@ -49,10 +49,11 @@ export const PreviewCanvas: React.FC = () => {
 
 const CanvasRenderer: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const { packedItems, images, settings } = usePackerStore();
+    const { packedItems, images, settings, atlasWidth, atlasHeight } = usePackerStore();
     const [loadedImages, setLoadedImages] = useState<Record<string, HTMLImageElement>>({});
 
     useEffect(() => {
+        // ... (loading images) ...
         images.forEach(img => {
             if (!loadedImages[img.id]) {
                 const imageObj = new Image();
@@ -62,7 +63,7 @@ const CanvasRenderer: React.FC = () => {
                 };
             }
         });
-    }, [images]); // Optimization: we should prevent re-loading known images.
+    }, [images, loadedImages]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -70,11 +71,16 @@ const CanvasRenderer: React.FC = () => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        canvas.width = settings.width;
-        canvas.height = settings.height;
+        // Determine Canvas Size
+        // If packed, use Calculated Size (atlasWidth/Height).
+        // If not packed, use Settings Size.
+        const targetW = packedItems.length > 0 ? atlasWidth : settings.width;
+        const targetH = packedItems.length > 0 ? atlasHeight : settings.height;
+
+        canvas.width = targetW;
+        canvas.height = targetH;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // ctx.fillStyle = '#2a2a2a'; // Removed to ensure transparency
 
         packedItems.forEach(item => {
             const img = loadedImages[item.id];
@@ -91,13 +97,6 @@ const CanvasRenderer: React.FC = () => {
                 if (img) {
                     ctx.drawImage(img, -item.width / 2, -item.height / 2, item.width, item.height);
                 }
-
-                // Debug (Disabled)
-                /*
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(-item.width/2, -item.height/2, item.width, item.height);
-                */
             }
 
             ctx.restore();
@@ -110,12 +109,34 @@ const CanvasRenderer: React.FC = () => {
             }
         }, 'image/png');
 
-    }, [packedItems, loadedImages, settings.width, settings.height]);
+    }, [packedItems, loadedImages, settings.width, settings.height, atlasWidth, atlasHeight]);
+
+    // Use current active dimensions for Aspect Ratio style
+    const viewW = packedItems.length > 0 ? atlasWidth : settings.width;
+    const viewH = packedItems.length > 0 ? atlasHeight : settings.height;
 
     return (
-        <canvas
-            ref={canvasRef}
-            className="block w-full h-full object-contain bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gM0AmIGBgSEfXR6XN5D14TUAp3kMNA2jBsA0AADsCBEaXlK/6AAAAABJRU5ErkJggg==')] bg-repeat"
-        />
+        <div className="relative" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* Checkerboard background */}
+            <div
+                className="absolute inset-0 pointer-events-none z-0"
+                style={{
+                    backgroundImage: `url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2nk5+d/Yggx4HPmzFkGRkZGMJtgWExjYyO6QnQAw8PD/0+fPo1uJzsAAJ72CxsH17e5AAAAAElFTkSuQmCC")`,
+                    backgroundRepeat: 'repeat',
+                    opacity: 0.2
+                }}
+            />
+            <canvas
+                ref={canvasRef}
+                // Width/Height set in Effect
+                className="relative z-10 shadow-sm"
+                style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain',
+                    aspectRatio: `${viewW} / ${viewH}`
+                }}
+            />
+        </div>
     );
 };

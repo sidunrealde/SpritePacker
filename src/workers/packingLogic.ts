@@ -34,16 +34,21 @@ export function performPacking(req: PackRequest): PackResult {
         // We will add (img.padding * 2) to width/height.
         // And when unpacking, we adjust x,y by +img.padding.
 
+
         const inputs = req.images.map(img => {
-            const p = img.padding || 0;
-            const w = Math.ceil(img.width * scalingFactor) + (p * 2);
-            const h = Math.ceil(img.height * scalingFactor) + (p * 2);
+            const pad = img.padding || { top: 0, bottom: 0, left: 0, right: 0 };
+            const pW = pad.left + pad.right;
+            const pH = pad.top + pad.bottom;
+
+            const w = Math.ceil(img.width * scalingFactor) + pW;
+            const h = Math.ceil(img.height * scalingFactor) + pH;
             const canRotate = allowRotation && (img.rotatable !== false);
 
             let finalW = w;
             let finalH = h;
 
-            if (canRotate) {
+            // For MaxRects, we might rotate.
+            if (canRotate && layout === 'maxrects') {
                 if ((w > packWidth || h > packHeight) && (h <= packWidth && w <= packHeight)) {
                     finalW = h;
                     finalH = w;
@@ -53,17 +58,14 @@ export function performPacking(req: PackRequest): PackResult {
             return {
                 width: finalW,
                 height: finalH,
-                data: { id: img.id, file: img.file, width: img.width, height: img.height, padding: p },
-                allowRotation: canRotate
+                data: { id: img.id, file: img.file, width: img.width, height: img.height, padding: pad },
+                allowRotation: canRotate && layout === 'maxrects'
             };
         });
 
         if (layout === 'maxrects') {
             const packer = new MaxRectsPacker(packWidth, packHeight, padding, {
-                smart: true, // Enable smart for better packing? User reported order issues. 
-                // Smart usually tries to compact. 
-                // If user wants order, we should disable smart? Default was false.
-                // Let's keep false as per previous file state, or try to respect order better.
+                smart: false, // Smart disabled to try and respect order more, but MaxRects inherently bins by size/fit.
                 pot: false,
                 square: false,
                 allowRotation: allowRotation,
@@ -73,7 +75,6 @@ export function performPacking(req: PackRequest): PackResult {
 
             packer.addArray(inputs as any[]);
 
-            // Check if we need to scale down (Only if NOT autoSize)
             if (!autoSize && scaleToFit && packer.bins.length > 1) {
                 scalingFactor *= 0.9;
                 continue;
@@ -84,42 +85,89 @@ export function performPacking(req: PackRequest): PackResult {
                 bin.rects.forEach((r) => {
                     const isRotated = (r as any).rot === true;
                     // Adjust for padding
-                    const p = (r.data as any).padding || 0;
+                    const pad = (r.data as any).padding || { top: 0, bottom: 0, left: 0, right: 0 };
 
-                    // The 'r' rect includes padding.
-                    // Image should be drawn at r.x + p, r.y + p with size r.width - 2p etc?
-                    // if rotated: r.width is height+2p. 
-                    // We need to be careful.
-                    // Visual X, Y on atlas = r.x + p.
-                    // Visual Width = originalScaledWidth.
+                    // r.x, r.y is the top-left of the PADDED box.
+                    // Image starts at x + pad.left, y + pad.top
+                    let finalX = r.x + pad.left;
+                    let finalY = r.y + pad.top;
 
-                    let finalX = r.x + p;
-                    let finalY = r.y + p;
+                    // If rotated, the box is rotated. 
+                    // The "visual" box in atlas is r.width x r.height.
+                    // But r.width (packed) might be Height + paddingH?
+                    // MaxRectsPacker rotates the DIMENSIONS. 
+                    // If rotated: r.width = originalH + pH, r.height = originalW + pW.
+                    // We need to be careful with coordinate mapping.
+                    // Visual Rect on Atlas:
+                    // x, y. 
+                    // Content is drawn inside.
 
-                    // Note: returned width/height should be the IMAGE size (scaled), not including padding?
-                    // Or the occupied area? The preview draws the rect.
-                    // Usually pack result returns the "Frame" valid for the sprite.
-                    // If we added padding, the "sprite" is effectively larger? 
-                    // User asked for padding. Usually that means transparency around sprite.
-                    // We will return the inner rect for the image logic.
-                    // But wait, collision?
-                    // If we return x+p, y+p, width=w, height=h.
-                    // The render loop draws image at x,y w,h. 
-                    // That leaves space around it. Correct.
-
-                    // Recover scaled dimensions
-                    // We don't have exact scaled W/H easily unless we calc again or store it.
-                    // r.width includes padding.
-                    // rotated?
                     let finalW, finalH;
                     if (isRotated) {
-                        // r.width = H + 2p
-                        // r.height = W + 2p
-                        finalW = r.height - (p * 2);
-                        finalH = r.width - (p * 2);
+                        // If rotated, the 'width' stored in r is the height of original.
+                        // Img W = r.height - pW
+                        // Img H = r.width - pH
+
+                        // Actually:
+                        // r.width (packed bounds width) corresponds to Image Height + Padding Top+Bottom ?
+                        // Wait, if we provided w = W+L+R, h = H+T+B.
+                        // And it rotated.
+                        // Now "Width" = h. "Height" = w.
+                        // So packed Width = H + T + B.
+                        // packed Height = W + L + R.
+
+                        // We offset by Left/Top relative to the *unrotated* frame? 
+                        // No, relative to the packed frame.
+                        // The internal content is rotated -90deg.
+                        // This gets complicated. 
+                        // Let's assume MaxRects rotation is handling the "Box".
+                        // We draw into the box.
+
+                        // IMPORTANT: For simplicity, we might want to disable rotation if per-side padding is uneven.
+                        // But let's assume padding rotates with the image?
+                        // If I have 50px left padding, and I rotate, does it become 50px bottom padding?
+                        // Or 50px Top?
+                        // Usually padding is attached to the image side.
+                        // So if Left=50, and I rotate -90, Left side becomes Bottom side.
+                        // So Bottom=50 in atlas space.
+
+                        finalW = r.height - (pad.left + pad.right);
+                        finalH = r.width - (pad.top + pad.bottom);
+
+                        // Re-calculated positions would depend on rotation.
+                        // But let's just use the rects and let renderer handle rotation 
+                        // assuming renderer rotates AROUND CENTER or similar.
+                        // Renderer logic: translate center, rotate, draw -W/2..
+
+                        // If we pass the visual bounds of the *Image Content* to renderer?
+                        // The renderer expects x, y, width, height of the DESTINATION ON SHEET.
+                        // If rotated, w/h are swapped. 
+                        // But x,y should be the top-left of the image content.
+
+                        // If rotated:
+                        // packed rect x,y.
+                        // Padding rotates: Left padding becomes Bottom. Top becomes Left.
+                        // (Rotate -90: T->L, R->T, B->R, L->B).
+                        // So offset x += Top (new Left). y += Right (new Top)? No.
+                        // Let's just pass the Padding info to the renderer? 
+                        // No, store is Rect[].
+
+                        // Let's Simplify:
+                        // Just return the inner logic. 
+                        // If rotated, p.top becomes p.left.
+                        // x += pad.top. y += pad.right.
+                        // This seems correct for -90deg rotation (Clockwise? No standard is usually CW or CCW).
+                        // Canvas rotate in PreviewCanvas used -90... so CCW?
+                        // ctx.rotate(-90 * Math.PI / 180);
+
+                        // If we rotate -90 (CCW):
+                        // Top -> Left. Right -> Top. Bottom -> Right. Left -> Bottom.
+
+                        finalX = r.x + pad.top;
+                        finalY = r.y + pad.right;
                     } else {
-                        finalW = r.width - (p * 2);
-                        finalH = r.height - (p * 2);
+                        finalW = r.width - (pad.left + pad.right);
+                        finalH = r.height - (pad.top + pad.bottom);
                     }
 
                     if (binIndex === 0) {
@@ -142,16 +190,86 @@ export function performPacking(req: PackRequest): PackResult {
             });
             break;
 
+        } else if (layout === 'grid') {
+            // New Grid Layout (Row-Major)
+            let currentX = 0;
+            let currentY = 0;
+            let rowHeight = 0;
+            let fits = true;
+
+            const limitW = autoSize ? 999999 : width;
+            const limitH = autoSize ? 999999 : height;
+
+            for (const img of inputs) { // Preserve inputs order
+                const w = img.width;
+                const h = img.height;
+                const data = (img.data as any);
+                const pad = data.padding;
+
+                if (currentX + w > limitW) {
+                    // Next row
+                    currentX = 0;
+                    currentY += rowHeight + padding;
+                    rowHeight = 0;
+                }
+
+                // Watch out for huge items
+                if (w > limitW) {
+                    // Should fit if autoSize, otherwise unpack
+                    if (!autoSize) {
+                        unpacked.push({ id: data.id, x: 0, y: 0, width: data.width, height: data.height, rotated: false, file: data.file });
+                        fits = false;
+                        continue;
+                    }
+                }
+
+                if (currentY + h > limitH) {
+                    if (!autoSize) {
+                        unpacked.push({ id: data.id, x: 0, y: 0, width: data.width, height: data.height, rotated: false, file: data.file });
+                        fits = false;
+                        continue;
+                    }
+                }
+
+                // Place it
+                // Adjust for padding inside the "box" we just allocated?
+                // Wait, w/h ALREADY includes padding (from inputs map).
+                // So we place the box at currentX, currentY.
+                // The image content is at currentX + pad.left, currentY + pad.top.
+
+                packed.push({
+                    id: data.id,
+                    x: currentX + pad.left,
+                    y: currentY + pad.top,
+                    width: data.width, // Original Image W
+                    height: data.height, // Original Image H
+                    rotated: false,
+                    file: data.file
+                });
+
+                rowHeight = Math.max(rowHeight, h);
+                currentX += w + padding; // Global padding
+            }
+
+            if (!autoSize && scaleToFit && !fits) {
+                scalingFactor *= 0.9;
+                continue;
+            }
+            break;
+
         } else {
             // Horizontal / Vertical
             let currentOffset = 0;
             let fits = true;
             const isVertical = layout === 'vertical';
 
-            req.images.forEach(img => {
-                const p = img.padding || 0;
-                const w = Math.ceil(img.width * scalingFactor) + (p * 2);
-                const h = Math.ceil(img.height * scalingFactor) + (p * 2);
+            // ... (Use updated inputs with padding logic)
+            // Need to iterate inputs, not req.images, because inputs has calculated Size+Padding
+            for (const img of inputs) {
+                const w = img.width;
+                const h = img.height;
+                const data = (img.data as any);
+                const pad = data.padding;
 
                 // For V/H, we also respect autoSize (infinite bounds)
                 const limitW = autoSize ? 999999 : width;
@@ -159,44 +277,36 @@ export function performPacking(req: PackRequest): PackResult {
 
                 if (isVertical) {
                     if (currentOffset + h > limitH || w > limitW) {
-                        unpacked.push({
-                            id: img.id, x: 0, y: 0,
-                            width: w - p * 2, height: h - p * 2,
-                            rotated: false, file: img.file
-                        });
+                        unpacked.push({ id: data.id, x: 0, y: 0, width: data.width, height: data.height, rotated: false, file: data.file });
                         fits = false;
                     } else {
                         packed.push({
-                            id: img.id,
-                            x: 0 + p,
-                            y: currentOffset + p,
-                            width: w - p * 2,
-                            height: h - p * 2,
-                            rotated: false, file: img.file
+                            id: data.id,
+                            x: 0 + pad.left,
+                            y: currentOffset + pad.top,
+                            width: data.width,
+                            height: data.height,
+                            rotated: false, file: data.file
                         });
-                        currentOffset += h + padding; // Global padding between items
+                        currentOffset += h + padding;
                     }
-                } else {
+                } else { // Horizontal
                     if (currentOffset + w > limitW || h > limitH) {
-                        unpacked.push({
-                            id: img.id, x: 0, y: 0,
-                            width: w - p * 2, height: h - p * 2,
-                            rotated: false, file: img.file
-                        });
+                        unpacked.push({ id: data.id, x: 0, y: 0, width: data.width, height: data.height, rotated: false, file: data.file });
                         fits = false;
                     } else {
                         packed.push({
-                            id: img.id,
-                            x: currentOffset + p,
-                            y: 0 + p,
-                            width: w - p * 2,
-                            height: h - p * 2,
-                            rotated: false, file: img.file
+                            id: data.id,
+                            x: currentOffset + pad.left,
+                            y: 0 + pad.top,
+                            width: data.width,
+                            height: data.height,
+                            rotated: false, file: data.file
                         });
                         currentOffset += w + padding;
                     }
                 }
-            });
+            }
 
             if (!autoSize && scaleToFit && !fits) {
                 scalingFactor *= 0.9;
