@@ -50,12 +50,14 @@ export function usePackerWorker() {
                 id: img.id,
                 width: img.width,
                 height: img.height,
-                file: img.file
+                file: img.file,
+                rotatable: img.rotatable
             })),
             width: settings.width,
             height: settings.height,
             padding: settings.padding,
-            allowRotation: settings.allowRotation
+            allowRotation: settings.allowRotation,
+            layout: settings.layout,
         };
 
         workerRef.current.postMessage(req);

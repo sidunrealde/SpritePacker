@@ -11,6 +11,7 @@ describe('packingLogic', () => {
             height: 100,
             padding: 0,
             allowRotation: false, // simpler to test
+            layout: 'maxrects',
             images: [
                 { id: '1', width: 50, height: 50, file: {} as File },
                 { id: '2', width: 50, height: 50, file: {} as File },
@@ -45,6 +46,7 @@ describe('packingLogic', () => {
             height: 60,
             padding: 0,
             allowRotation: true,
+            layout: 'maxrects',
             images: [
                 { id: '1', width: 90, height: 60, file: {} as File },
             ],
@@ -63,6 +65,7 @@ describe('packingLogic', () => {
             height: 100,
             padding: 0,
             allowRotation: true,
+            layout: 'maxrects',
             images: [
                 { id: '1', width: 90, height: 60, file: {} as File },
             ],

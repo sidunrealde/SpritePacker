@@ -6,7 +6,7 @@ describe('usePackerStore', () => {
     beforeEach(() => {
         usePackerStore.setState({
             images: [],
-            settings: { width: 1024, height: 1024, padding: 0, allowRotation: false },
+            settings: { width: 1024, height: 1024, padding: 0, allowRotation: false, layout: 'maxrects' },
             status: 'idle',
             packedItems: [],
         });

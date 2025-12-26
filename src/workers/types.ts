@@ -13,11 +13,12 @@ export interface Rect {
 
 export interface PackRequest {
     id: string;
-    images: { id: string; width: number; height: number; file: File }[];
+    images: { id: string; width: number; height: number; file: File; rotatable?: boolean }[];
     width: number;
     height: number;
     padding: number;
     allowRotation: boolean;
+    layout: 'maxrects' | 'vertical' | 'horizontal';
 }
 
 export interface PackResult {

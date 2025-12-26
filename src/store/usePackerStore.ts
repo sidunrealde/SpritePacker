@@ -8,6 +8,7 @@ export interface ImageItem {
     width: number;
     height: number;
     url: string; // Object URL for preview
+    rotatable: boolean; // Individual override
 }
 
 interface PackingSettings {
@@ -15,6 +16,7 @@ interface PackingSettings {
     height: number;
     padding: number;
     allowRotation: boolean;
+    layout: 'maxrects' | 'vertical' | 'horizontal';
 }
 
 interface PackerState {
@@ -28,6 +30,8 @@ interface PackerState {
 
     addImage: (file: File) => Promise<void>;
     removeImage: (id: string) => void;
+    clearImages: () => void;
+    toggleImageRotation: (id: string) => void;
     updateSettings: (newSettings: Partial<PackingSettings>) => void;
     setPackingStatus: (status: PackerState['status'], error?: string) => void;
     setPackedResults: (items: Rect[], atlasUrl?: string) => void;
@@ -41,6 +45,7 @@ export const usePackerStore = create<PackerState>((set) => ({
         height: 2048,
         padding: 2,
         allowRotation: false,
+        layout: 'maxrects',
     },
     packedItems: [],
     status: 'idle',
@@ -55,6 +60,9 @@ export const usePackerStore = create<PackerState>((set) => ({
             width: bitmap.width,
             height: bitmap.height,
             url: URL.createObjectURL(file), // Only for preview in list
+            rotatable: true, // Default to true, but global setting overrides if false? 
+            // Logic: If global allowRotation is TRUE, this flag controls specific items. 
+            // If global is FALSE, no rotation happens at all.
         };
 
         set((state) => ({ images: [...state.images, item] }));
@@ -63,6 +71,18 @@ export const usePackerStore = create<PackerState>((set) => ({
     removeImage: (id: string) => {
         set((state) => ({
             images: state.images.filter((img) => img.id !== id),
+        }));
+    },
+
+    clearImages: () => {
+        set({ images: [], packedItems: [], atlasUrl: undefined, atlasBlob: undefined, status: 'idle' });
+    },
+
+    toggleImageRotation: (id: string) => {
+        set((state) => ({
+            images: state.images.map(img =>
+                img.id === id ? { ...img, rotatable: !img.rotatable } : img
+            )
         }));
     },
 
