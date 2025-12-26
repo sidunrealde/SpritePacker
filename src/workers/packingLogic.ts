@@ -207,6 +207,18 @@ export function performPacking(req: PackRequest): PackResult {
                         rowH = 0;
                     }
 
+                    // Check horizontal fit (if item is wider than container alone)
+                    if (img.width > currentPackW) {
+                        if (autoSize) {
+                            allFit = false;
+                            break;
+                        } else {
+                            // Unpack to trigger scaleToFit (or just report failure)
+                            unpacked.push({ id: data.id, x: 0, y: 0, width: data.width, height: data.height, rotation: data.originalRotation, file: data.file });
+                            continue;
+                        }
+                    }
+
                     // Check vertical fit
                     if (cy + img.height > currentPackH) {
                         if (autoSize) {
