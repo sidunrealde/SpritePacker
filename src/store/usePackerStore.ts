@@ -8,7 +8,8 @@ export interface ImageItem {
     width: number;
     height: number;
     url: string; // Object URL for preview
-    rotatable: boolean; // Individual override
+    rotatable?: boolean; // Individual override
+    padding?: number;
 }
 
 interface PackingSettings {
@@ -18,6 +19,7 @@ interface PackingSettings {
     allowRotation: boolean;
     layout: 'maxrects' | 'vertical' | 'horizontal';
     scaleToFit: boolean;
+    autoSize: boolean;
 }
 
 interface PackerState {
@@ -33,6 +35,7 @@ interface PackerState {
     removeImage: (id: string) => void;
     clearImages: () => void;
     reorderImages: (newOrder: ImageItem[]) => void;
+    updateImage: (id: string, updates: Partial<ImageItem>) => void;
     toggleImageRotation: (id: string) => void;
     updateSettings: (newSettings: Partial<PackingSettings>) => void;
     setPackingStatus: (status: PackerState['status'], error?: string) => void;
@@ -49,6 +52,7 @@ export const usePackerStore = create<PackerState>((set) => ({
         allowRotation: false,
         layout: 'maxrects',
         scaleToFit: false,
+        autoSize: false,
     },
     packedItems: [],
     status: 'idle',
@@ -79,6 +83,12 @@ export const usePackerStore = create<PackerState>((set) => ({
 
     reorderImages: (newOrder) => {
         set({ images: newOrder });
+    },
+
+    updateImage: (id: string, updates: Partial<ImageItem>) => {
+        set((state) => ({
+            images: state.images.map(img => img.id === id ? { ...img, ...updates } : img)
+        }));
     },
 
     clearImages: () => {

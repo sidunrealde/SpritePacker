@@ -51,7 +51,8 @@ export function usePackerWorker() {
                 width: img.width,
                 height: img.height,
                 file: img.file,
-                rotatable: img.rotatable
+                rotatable: img.rotatable,
+                padding: img.padding
             })),
             width: settings.width,
             height: settings.height,
@@ -59,6 +60,7 @@ export function usePackerWorker() {
             allowRotation: settings.allowRotation,
             layout: settings.layout,
             scaleToFit: settings.scaleToFit,
+            autoSize: settings.autoSize,
         };
 
         workerRef.current.postMessage(req);

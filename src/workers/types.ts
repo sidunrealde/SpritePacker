@@ -7,19 +7,21 @@ export interface Rect {
     x: number;
     y: number;
     rotated: boolean;
+    padding?: number;
     file?: File; // Keep reference to original file if needed
     imageBitmap?: ImageBitmap; // For drawing
 }
 
 export interface PackRequest {
     id: string;
-    images: { id: string; width: number; height: number; file: File; rotatable?: boolean }[];
+    images: { id: string; width: number; height: number; file: File; rotatable?: boolean; padding?: number }[];
     width: number;
     height: number;
     padding: number;
     allowRotation: boolean;
     layout: 'maxrects' | 'vertical' | 'horizontal';
     scaleToFit?: boolean;
+    autoSize?: boolean;
 }
 
 export interface PackResult {

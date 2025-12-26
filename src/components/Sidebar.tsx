@@ -43,6 +43,13 @@ export const Sidebar: React.FC = () => {
 
     return (
         <aside className="w-80 bg-gray-900 border-r border-gray-800 flex flex-col text-gray-300 shadow-xl z-20">
+            <style>{`
+                .no-spinner::-webkit-inner-spin-button, 
+                .no-spinner::-webkit-outer-spin-button { 
+                    -webkit-appearance: none; 
+                    margin: 0; 
+                }
+            `}</style>
             <div className="p-4 border-b border-gray-800 space-y-6">
                 <div>
                     <h2 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">Settings</h2>
@@ -96,15 +103,15 @@ export const Sidebar: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-gray-400">Global Rotation</span>
-                        <div className="relative inline-block w-8 mr-2 align-middle select-none transition duration-200 ease-in">
-                            <input type="checkbox" name="toggle" id="rot"
-                                checked={settings.allowRotation}
-                                onChange={(e) => updateSettings({ allowRotation: e.target.checked })}
-                                className="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:translate-x-4" />
-                            <label htmlFor="rot" className={`toggle-label block overflow-hidden h-4 rounded-full cursor-pointer ${settings.allowRotation ? 'bg-blue-600' : 'bg-gray-700'}`}>
-                                <span className="sr-only">Toggle Rotation</span>
-                            </label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="autoSize"
+                                checked={settings.autoSize}
+                                onChange={(e) => updateSettings({ autoSize: e.target.checked })}
+                                className="bg-gray-800 border-gray-700 rounded text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor="autoSize" className="text-xs text-gray-400">Auto Dimension</label>
                         </div>
                     </div>
 
@@ -194,6 +201,15 @@ export const Sidebar: React.FC = () => {
                             </div>
 
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <input
+                                    type="number"
+                                    className="w-8 bg-gray-900 border border-gray-700 rounded px-1 text-[10px] text-center no-spinner"
+                                    placeholder="Pd"
+                                    value={img.padding || ''}
+                                    onChange={(e) => usePackerStore.getState().updateImage(img.id, { padding: Number(e.target.value) })}
+                                    onClick={(e) => e.stopPropagation()}
+                                    title="Padding (px)"
+                                />
                                 <button
                                     onClick={() => toggleImageRotation(img.id)}
                                     className={`p-1.5 rounded hover:bg-gray-700 ${img.rotatable ? 'text-blue-400' : 'text-gray-500'}`}

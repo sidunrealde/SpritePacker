@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { usePackerStore } from '../store/usePackerStore';
 
 export const PreviewCanvas: React.FC = () => {
-    const { addImage, packedItems, settings } = usePackerStore();
+    const { addImage, packedItems } = usePackerStore();
     const [isDragging, setIsDragging] = useState(false);
 
     const onDragOver = (e: React.DragEvent) => {
@@ -41,11 +41,7 @@ export const PreviewCanvas: React.FC = () => {
                     <p>Drag images here or use the Sidebar to add sprites.</p>
                 </div>
             ) : (
-                <div className="relative shadow-lg border border-gray-700 bg-gray-900 overflow-hidden"
-                    style={{ maxWidth: '100%', maxHeight: '100%', aspectRatio: `${settings.width}/${settings.height}` }}
-                >
-                    <CanvasRenderer />
-                </div>
+                <CanvasRenderer />
             )}
         </div>
     );
@@ -53,7 +49,7 @@ export const PreviewCanvas: React.FC = () => {
 
 const CanvasRenderer: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const { packedItems, settings, images } = usePackerStore();
+    const { packedItems, images, settings } = usePackerStore();
     const [loadedImages, setLoadedImages] = useState<Record<string, HTMLImageElement>>({});
 
     useEffect(() => {
@@ -79,7 +75,6 @@ const CanvasRenderer: React.FC = () => {
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         // ctx.fillStyle = '#2a2a2a'; // Removed to ensure transparency
-        // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         packedItems.forEach(item => {
             const img = loadedImages[item.id];
@@ -88,42 +83,34 @@ const CanvasRenderer: React.FC = () => {
             ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
 
             if (item.rotated) {
-                ctx.rotate(-Math.PI / 2);
+                ctx.rotate(-90 * Math.PI / 180);
                 if (img) {
-                    // Since we rotated -90deg, the local coord system is rotated.
-                    // The item's PACKED width is its visual height, and vice versa.
-                    // We draw the original image (w x h) centered.
-                    // Wait, if item.rotated is true:
-                    // item.width = original height (plus padding maybe)
-                    // item.height = original width
-
-                    // If we draw:
-                    // drawImage(img, -img.width/2, -img.height/2)
-
-                    // But we want to fit it into the packed rect.
-                    // item.width (packed) should match img.height (original).
-
                     ctx.drawImage(img, -item.height / 2, -item.width / 2, item.height, item.width);
                 }
             } else {
                 if (img) {
                     ctx.drawImage(img, -item.width / 2, -item.height / 2, item.width, item.height);
                 }
+
+                // Debug (Disabled)
+                /*
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(-item.width/2, -item.height/2, item.width, item.height);
+                */
             }
 
             ctx.restore();
-
-            ctx.strokeStyle = '#4ade80';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(item.x, item.y, item.width, item.height);
         });
 
-        // Update Blob in store for download
-        canvas.toBlob((blob) => {
-            if (blob) usePackerStore.getState().setAtlasBlob(blob);
-        });
+        // Update Blob
+        canvas.toBlob(blob => {
+            if (blob) {
+                usePackerStore.getState().setAtlasBlob(blob);
+            }
+        }, 'image/png');
 
-    }, [packedItems, settings, loadedImages]);
+    }, [packedItems, loadedImages, settings.width, settings.height]);
 
     return (
         <canvas
