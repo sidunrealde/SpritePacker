@@ -1,6 +1,6 @@
 // src/store/usePackerStore.ts
 import { create } from 'zustand';
-import { Rect } from '../workers/types';
+import type { Rect } from '../workers/types';
 
 export interface ImageItem {
     id: string;
@@ -32,7 +32,7 @@ interface PackerState {
     setPackedResults: (items: Rect[], atlasUrl?: string) => void;
 }
 
-export const usePackerStore = create<PackerState>((set, get) => ({
+export const usePackerStore = create<PackerState>((set) => ({
     images: [],
     settings: {
         width: 2048,

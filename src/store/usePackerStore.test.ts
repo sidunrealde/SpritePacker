@@ -12,9 +12,9 @@ describe('usePackerStore', () => {
         });
 
         // Mock browser APIs
-        global.URL.createObjectURL = vi.fn(() => 'blob:test');
-        global.createImageBitmap = vi.fn(() => Promise.resolve({ width: 100, height: 100 } as ImageBitmap));
-        global.crypto.randomUUID = vi.fn(() => 'test-id');
+        globalThis.URL.createObjectURL = vi.fn(() => 'blob:test');
+        globalThis.createImageBitmap = vi.fn(() => Promise.resolve({ width: 100, height: 100 } as ImageBitmap));
+        globalThis.crypto.randomUUID = vi.fn(() => 'test-id' as any);
     });
 
     it('should add an image', async () => {

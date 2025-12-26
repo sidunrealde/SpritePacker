@@ -1,6 +1,6 @@
 // src/workers/PackerWorker.ts
 import { performPacking } from './packingLogic';
-import { PackRequest, PackResult } from './types';
+import type { PackRequest, PackResult } from './types';
 
 self.onmessage = (e: MessageEvent<PackRequest>) => {
     const req = e.data;
