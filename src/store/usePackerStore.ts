@@ -23,13 +23,15 @@ interface PackerState {
     packedItems: Rect[];
     status: 'idle' | 'packing' | 'success' | 'error';
     errorMessage?: string;
-    atlasUrl?: string; // Resulting packed texture URL
+    atlasUrl?: string; // Resulting packed texture URL (Preview)
+    atlasBlob?: Blob; // Actual Blob for download
 
     addImage: (file: File) => Promise<void>;
     removeImage: (id: string) => void;
     updateSettings: (newSettings: Partial<PackingSettings>) => void;
     setPackingStatus: (status: PackerState['status'], error?: string) => void;
     setPackedResults: (items: Rect[], atlasUrl?: string) => void;
+    setAtlasBlob: (blob: Blob) => void;
 }
 
 export const usePackerStore = create<PackerState>((set) => ({
@@ -76,5 +78,9 @@ export const usePackerStore = create<PackerState>((set) => ({
 
     setPackedResults: (items, atlasUrl) => {
         set({ packedItems: items, atlasUrl, status: 'success' });
+    },
+
+    setAtlasBlob: (blob) => {
+        set({ atlasBlob: blob });
     },
 }));
