@@ -17,6 +17,7 @@ interface PackingSettings {
     padding: number;
     allowRotation: boolean;
     layout: 'maxrects' | 'vertical' | 'horizontal';
+    scaleToFit: boolean;
 }
 
 interface PackerState {
@@ -31,6 +32,7 @@ interface PackerState {
     addImage: (file: File) => Promise<void>;
     removeImage: (id: string) => void;
     clearImages: () => void;
+    reorderImages: (newOrder: ImageItem[]) => void;
     toggleImageRotation: (id: string) => void;
     updateSettings: (newSettings: Partial<PackingSettings>) => void;
     setPackingStatus: (status: PackerState['status'], error?: string) => void;
@@ -46,6 +48,7 @@ export const usePackerStore = create<PackerState>((set) => ({
         padding: 2,
         allowRotation: false,
         layout: 'maxrects',
+        scaleToFit: false,
     },
     packedItems: [],
     status: 'idle',
@@ -72,6 +75,10 @@ export const usePackerStore = create<PackerState>((set) => ({
         set((state) => ({
             images: state.images.filter((img) => img.id !== id),
         }));
+    },
+
+    reorderImages: (newOrder) => {
+        set({ images: newOrder });
     },
 
     clearImages: () => {

@@ -58,6 +58,7 @@ export function usePackerWorker() {
             padding: settings.padding,
             allowRotation: settings.allowRotation,
             layout: settings.layout,
+            scaleToFit: settings.scaleToFit,
         };
 
         workerRef.current.postMessage(req);

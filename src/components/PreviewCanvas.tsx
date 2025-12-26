@@ -78,8 +78,8 @@ const CanvasRenderer: React.FC = () => {
         canvas.height = settings.height;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#2a2a2a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // ctx.fillStyle = '#2a2a2a'; // Removed to ensure transparency
+        // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         packedItems.forEach(item => {
             const img = loadedImages[item.id];
@@ -128,7 +128,7 @@ const CanvasRenderer: React.FC = () => {
     return (
         <canvas
             ref={canvasRef}
-            className="block w-full h-full object-contain"
+            className="block w-full h-full object-contain bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gM0AmIGBgSEfXR6XN5D14TUAp3kMNA2jBsA0AADsCBEaXlK/6AAAAABJRU5ErkJggg==')] bg-repeat"
         />
     );
 };

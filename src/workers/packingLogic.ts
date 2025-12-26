@@ -2,119 +2,126 @@ import { MaxRectsPacker } from 'maxrects-packer';
 import type { PackRequest, PackResult, Rect } from './types';
 
 export function performPacking(req: PackRequest): PackResult {
-    const { layout, width, height, padding, allowRotation } = req;
+    const { layout, width, height, padding, allowRotation, scaleToFit } = req;
     const packed: Rect[] = [];
     const unpacked: Rect[] = [];
 
-    if (layout === 'vertical') {
-        let currentY = 0;
-        let maxWidth = 0;
+    let scalingFactor = 1.0;
+    const maxIterations = 10;
 
-        req.images.forEach(img => {
-            // Check if it fits in height (simple check)
-            if (currentY + img.height > height) {
-                unpacked.push({
-                    id: img.id, x: 0, y: 0, width: img.width, height: img.height, rotated: false, file: img.file
-                });
-                return;
-            }
+    // Iterative packing loop for Scale To Fit
+    for (let i = 0; i < maxIterations; i++) {
+        packed.length = 0;
+        unpacked.length = 0;
 
-            packed.push({
-                id: img.id,
-                x: 0,
-                y: currentY,
-                width: img.width,
-                height: img.height,
-                rotated: false,
-                file: img.file
+        if (layout === 'maxrects') {
+            const packer = new MaxRectsPacker(width, height, padding, {
+                smart: false,
+                pot: false,
+                square: false,
+                allowRotation: allowRotation,
+                tag: false,
+                border: 0,
             });
 
-            currentY += img.height + padding;
-            maxWidth = Math.max(maxWidth, img.width);
-        });
+            const inputs = req.images.map(img => {
+                const w = Math.ceil(img.width * scalingFactor);
+                const h = Math.ceil(img.height * scalingFactor);
+                const canRotate = allowRotation && (img.rotatable !== false);
 
-        // Auto-adjust container width? No, keep requested width/height for now or return actual usage?
-        // The return type has width/height. We'll return requested.
+                let finalW = w;
+                let finalH = h;
 
-    } else if (layout === 'horizontal') {
-        let currentX = 0;
-        let maxHeight = 0;
-
-        req.images.forEach(img => {
-            if (currentX + img.width > width) {
-                unpacked.push({
-                    id: img.id, x: 0, y: 0, width: img.width, height: img.height, rotated: false, file: img.file
-                });
-                return;
-            }
-
-            packed.push({
-                id: img.id,
-                x: currentX,
-                y: 0,
-                width: img.width,
-                height: img.height,
-                rotated: false,
-                file: img.file
-            });
-
-            currentX += img.width + padding;
-            maxHeight = Math.max(maxHeight, img.height);
-        });
-
-    } else {
-        // MaxRects (Default)
-        const packer = new MaxRectsPacker(width, height, padding, {
-            smart: false,
-            pot: false,
-            square: false,
-            allowRotation: allowRotation,
-            tag: false,
-            border: 0,
-        });
-
-        const inputs = req.images.map((img) => {
-            let w = img.width;
-            let h = img.height;
-            const canRotate = allowRotation && (img.rotatable !== false);
-
-            // Pre-rotate logic only if allowed
-            if (canRotate) {
-                if ((w > width || h > height) && (h <= width && w <= height)) {
-                    const temp = w;
-                    w = h;
-                    h = temp;
+                // Pre-rotate check
+                if (canRotate) {
+                    if ((w > width || h > height) && (h <= width && w <= height)) {
+                        finalW = h;
+                        finalH = w;
+                    }
                 }
+
+                return {
+                    width: finalW,
+                    height: finalH,
+                    data: { id: img.id, file: img.file, width: img.width, height: img.height },
+                    allowRotation: canRotate
+                };
+            });
+
+            packer.addArray(inputs as any[]);
+
+            // Check if we need to scale down
+            if (scaleToFit && packer.bins.length > 1) {
+                scalingFactor *= 0.9;
+                continue; // Retry with smaller scale
             }
 
-            return {
-                width: w,
-                height: h,
-                data: { id: img.id, file: img.file, width: img.width, height: img.height },
-                allowRotation: canRotate
-            };
-        });
+            // Extract results
+            packer.bins.forEach((bin, binIndex) => {
+                bin.rects.forEach((r) => {
+                    const isRotated = (r as any).rot === true;
 
-        packer.addArray(inputs as any[]);
-
-        packer.bins.forEach((bin) => {
-            bin.rects.forEach((r) => {
-                const originalWidth = (r.data as any).width;
-                const isRotated = !!r.rot || (r.width !== originalWidth);
-
-                packed.push({
-                    id: (r.data as any).id,
-                    x: r.x,
-                    y: r.y,
-                    width: r.width,
-                    height: r.height,
-                    rotated: isRotated,
-                    file: (r.data as any).file,
+                    if (binIndex === 0) {
+                        packed.push({
+                            id: (r.data as any).id,
+                            x: r.x,
+                            y: r.y,
+                            width: r.width,
+                            height: r.height,
+                            rotated: isRotated,
+                            file: (r.data as any).file,
+                        });
+                    } else {
+                        // Return unpacked for secondary bins if we stopped scaling or disabled it
+                        unpacked.push({
+                            id: (r.data as any).id,
+                            x: 0,
+                            y: 0,
+                            width: r.width,
+                            height: r.height,
+                            rotated: isRotated,
+                            file: (r.data as any).file,
+                        });
+                    }
                 });
             });
-        });
-        // MaxRects doesn't easily expose unpacked items from the initial add call unless we check logic, 
-        // but it adds bins. We assume single bin for now or take all.
+            break;
+
+        } else {
+            // Horizontal / Vertical Layouts
+            let currentOffset = 0;
+            let fits = true;
+            const isVertical = layout === 'vertical';
+
+            req.images.forEach(img => {
+                const w = Math.ceil(img.width * scalingFactor);
+                const h = Math.ceil(img.height * scalingFactor);
+
+                if (isVertical) {
+                    if (currentOffset + h > height || w > width) {
+                        unpacked.push({ id: img.id, x: 0, y: 0, width: w, height: h, rotated: false, file: img.file });
+                        fits = false;
+                    } else {
+                        packed.push({ id: img.id, x: 0, y: currentOffset, width: w, height: h, rotated: false, file: img.file });
+                        currentOffset += h + padding;
+                    }
+                } else {
+                    if (currentOffset + w > width || h > height) {
+                        unpacked.push({ id: img.id, x: 0, y: 0, width: w, height: h, rotated: false, file: img.file });
+                        fits = false;
+                    } else {
+                        packed.push({ id: img.id, x: currentOffset, y: 0, width: w, height: h, rotated: false, file: img.file });
+                        currentOffset += w + padding;
+                    }
+                }
+            });
+
+            if (scaleToFit && !fits) {
+                scalingFactor *= 0.9;
+                continue;
+            }
+            break;
+        }
     }
 
     return {

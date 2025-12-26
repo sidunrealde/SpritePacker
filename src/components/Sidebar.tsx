@@ -101,11 +101,22 @@ export const Sidebar: React.FC = () => {
                             <input type="checkbox" name="toggle" id="rot"
                                 checked={settings.allowRotation}
                                 onChange={(e) => updateSettings({ allowRotation: e.target.checked })}
-                                className="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out check:translate-x-4" />
+                                className="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:translate-x-4" />
                             <label htmlFor="rot" className={`toggle-label block overflow-hidden h-4 rounded-full cursor-pointer ${settings.allowRotation ? 'bg-blue-600' : 'bg-gray-700'}`}>
                                 <span className="sr-only">Toggle Rotation</span>
                             </label>
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-3">
+                        <input
+                            type="checkbox"
+                            id="scaleFit"
+                            checked={settings.scaleToFit}
+                            onChange={(e) => updateSettings({ scaleToFit: e.target.checked })}
+                            className="bg-gray-800 border-gray-700 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <label htmlFor="scaleFit" className="text-xs text-gray-400">Scale Sprites to Fit Atlas</label>
                     </div>
 
                     {/* Export Settings */}
@@ -148,10 +159,33 @@ export const Sidebar: React.FC = () => {
                 </label>
 
                 <div className="space-y-1">
-                    {images.map(img => (
-                        <div key={img.id} className="flex items-center gap-2 bg-gray-800 hover:bg-gray-750 p-2 rounded border border-transparent hover:border-gray-700 group transition-all">
-                            <div className="w-10 h-10 bg-gray-900 rounded overflow-hidden flex-shrink-0 border border-gray-700">
-                                <img src={img.url} alt="preview" className="w-full h-full object-contain" />
+                    {images.map((img, index) => (
+                        <div
+                            key={img.id}
+                            className="flex items-center gap-2 bg-gray-800 hover:bg-gray-750 p-2 rounded border border-transparent hover:border-gray-700 group transition-all"
+                            draggable
+                            onDragStart={(e) => {
+                                e.dataTransfer.setData('text/plain', index.toString());
+                                e.dataTransfer.effectAllowed = 'move';
+                            }}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = 'move';
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const dragIndex = Number(e.dataTransfer.getData('text/plain'));
+                                if (dragIndex === index) return;
+
+                                const newImages = [...images];
+                                const [draggedItem] = newImages.splice(dragIndex, 1);
+                                newImages.splice(index, 0, draggedItem);
+
+                                usePackerStore.getState().reorderImages(newImages);
+                            }}
+                        >
+                            <div className="w-10 h-10 bg-gray-900 rounded overflow-hidden flex-shrink-0 border border-gray-700 cursor-move">
+                                <img src={img.url} alt="preview" className="w-full h-full object-contain pointer-events-none" />
                             </div>
 
                             <div className="flex-1 min-w-0">

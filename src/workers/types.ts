@@ -19,6 +19,7 @@ export interface PackRequest {
     padding: number;
     allowRotation: boolean;
     layout: 'maxrects' | 'vertical' | 'horizontal';
+    scaleToFit?: boolean;
 }
 
 export interface PackResult {
