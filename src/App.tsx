@@ -33,7 +33,10 @@ function App() {
       {/* Main Content - Canvas Preview */}
       <main className="flex-1 relative flex flex-col">
         <header className="h-14 border-b border-[var(--border-color)] flex items-center px-4 justify-between bg-[var(--bg-secondary)]">
-          <h1 className="font-bold text-lg">SpritePacker</h1>
+          <div className="flex items-center gap-2">
+            <img src="/app_icon.png" alt="SpritePacker" className="w-8 h-8" />
+            <h1 className="font-bold text-lg">SpritePacker</h1>
+          </div>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsDark(!isDark)}
@@ -50,7 +53,6 @@ function App() {
                 </svg>
               )}
             </button>
-            <div className="text-sm text-[var(--text-secondary)]">v0.1.0</div>
           </div>
         </header>
 
