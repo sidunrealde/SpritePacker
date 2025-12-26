@@ -240,6 +240,12 @@ export function performPacking(req: PackRequest): PackResult {
                     continue;
                 }
 
+                if (!autoSize && scaleToFit && unpacked.length > 0) {
+                    scalingFactor *= 0.9;
+                    if (scalingFactor < 0.01) break; // Safety
+                    continue;
+                }
+
                 packed = localPacked;
                 success = true;
 
