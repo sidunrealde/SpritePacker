@@ -53,11 +53,11 @@ interface PackerState {
 const initialSettings: PackingSettings = {
     width: 2048,
     height: 2048,
-    padding: 2,
+    padding: 0,
     allowRotation: false,
     layout: 'grid',
     scaleToFit: false,
-    autoSize: false,
+    autoSize: true,
 };
 
 export const usePackerStore = create<PackerState>((set) => ({
