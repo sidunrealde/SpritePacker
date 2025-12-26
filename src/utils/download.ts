@@ -20,7 +20,7 @@ const convertToPackResultData = (
                 width: item.width,
                 height: item.height
             },
-            rotated: item.rotated || false,
+            rotated: item.rotation === 90 || item.rotation === 270,
             trimmed: false, // Trim logic not fully implemented yet
             spriteSourceSize: {
                 x: 0,
@@ -29,8 +29,8 @@ const convertToPackResultData = (
                 height: item.height
             }, // Assuming no trim
             sourceSize: {
-                w: item.rotated ? item.height : item.width,
-                h: item.rotated ? item.width : item.height
+                w: (item.rotation === 90 || item.rotation === 270) ? item.height : item.width,
+                h: (item.rotation === 90 || item.rotation === 270) ? item.width : item.height
             }
         })),
         meta: {

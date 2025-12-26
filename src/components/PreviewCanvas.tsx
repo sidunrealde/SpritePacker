@@ -88,15 +88,19 @@ const CanvasRenderer: React.FC = () => {
             ctx.save();
             ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
 
-            if (item.rotated) {
-                ctx.rotate(-90 * Math.PI / 180);
-                if (img) {
-                    ctx.drawImage(img, -item.height / 2, -item.width / 2, item.height, item.width);
-                }
-            } else {
-                if (img) {
-                    ctx.drawImage(img, -item.width / 2, -item.height / 2, item.width, item.height);
-                }
+            // Allow 4-way rotation (0, 90, 180, 270)
+            const rad = item.rotation * (Math.PI / 180);
+            ctx.rotate(rad);
+
+            if (img) {
+                // Determine original dimensions based on packed dimensions and rotation
+                // If rotated 90 or 270, the packed W/H are swapped relative to the original image.
+                // So original W = packed H, original H = packed W.
+                const isSwapped = item.rotation === 90 || item.rotation === 270;
+                const drawW = isSwapped ? item.height : item.width;
+                const drawH = isSwapped ? item.width : item.height;
+
+                ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
             }
 
             ctx.restore();

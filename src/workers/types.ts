@@ -9,14 +9,12 @@ export interface Padding {
 
 export interface Rect {
     id: string;
-    width: number;
-    height: number;
     x: number;
     y: number;
-    rotated: boolean;
-    padding?: Padding;
-    file?: File; // Keep reference to original file if needed
-    imageBitmap?: ImageBitmap; // For drawing
+    width: number;
+    height: number;
+    rotation: number; // 0, 90, 180, 270
+    file: File;
 }
 
 export interface PackRequest {

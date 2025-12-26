@@ -163,7 +163,7 @@ export function performPacking(req: PackRequest): PackResult {
                             y: finalY,
                             width: finalW,
                             height: finalH,
-                            rotated: (data.originalRotation === 90 || data.originalRotation === 270), // Just visual flag if needed by renderer
+                            rotation: data.originalRotation,
                             file: data.file,
                         };
 
@@ -214,7 +214,7 @@ export function performPacking(req: PackRequest): PackResult {
                             break;
                         } else {
                             // Just unpack
-                            unpacked.push({ id: data.id, x: 0, y: 0, width: data.width, height: data.height, rotated: false, file: data.file });
+                            unpacked.push({ id: data.id, x: 0, y: 0, width: data.width, height: data.height, rotation: data.originalRotation, file: data.file });
                             continue;
                         }
                     }
@@ -225,7 +225,7 @@ export function performPacking(req: PackRequest): PackResult {
                         y: cy + pad.top,
                         width: data.width,
                         height: data.height,
-                        rotated: (data.originalRotation === 90 || data.originalRotation === 270),
+                        rotation: data.originalRotation,
                         file: data.file
                     });
 
@@ -276,7 +276,7 @@ export function performPacking(req: PackRequest): PackResult {
                         y: py + pad.top,
                         width: data.width,
                         height: data.height,
-                        rotated: (data.originalRotation === 90 || data.originalRotation === 270),
+                        rotation: data.originalRotation,
                         file: data.file
                     });
 
@@ -326,8 +326,8 @@ export function performPacking(req: PackRequest): PackResult {
     let finalHeight = height;
 
     if (autoSize && packed.length > 0) {
-        const maxX = packed.reduce((max, r) => Math.max(max, r.x + (r.rotated ? r.height : r.width)), 0);
-        const maxY = packed.reduce((max, r) => Math.max(max, r.y + (r.rotated ? r.width : r.height)), 0);
+        const maxX = packed.reduce((max, r) => Math.max(max, r.x + ((r.rotation === 90 || r.rotation === 270) ? r.height : r.width)), 0);
+        const maxY = packed.reduce((max, r) => Math.max(max, r.y + ((r.rotation === 90 || r.rotation === 270) ? r.width : r.height)), 0);
 
         // Add a small buffer or user padding? Global padding?
         // Let's set dimensions to Next POT or just ceil?

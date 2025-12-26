@@ -54,7 +54,7 @@ describe('packingLogic', () => {
 
         const result = performPacking(req);
         expect(result.packed.length).toBe(1);
-        expect(result.packed[0].rotated).toBe(false);
+        expect(result.packed[0].rotation).toBe(0);
     });
 
     it('should rotate to fit', () => {
@@ -78,6 +78,6 @@ describe('packingLogic', () => {
         // Expect success
         expect(result.packed.length).toBe(1);
         // Logic sets rotated=true if input angle is 90
-        expect(result.packed[0].rotated).toBe(true);
+        expect(result.packed[0].rotation).toBe(90);
     });
 });

@@ -55,7 +55,7 @@ const initialSettings: PackingSettings = {
     height: 2048,
     padding: 2,
     allowRotation: false,
-    layout: 'maxrects',
+    layout: 'grid',
     scaleToFit: false,
     autoSize: false,
 };
